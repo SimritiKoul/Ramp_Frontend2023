@@ -21,13 +21,17 @@ export function App() {
 
   const loadAllTransactions = useCallback(async () => {
     setIsLoading(true)
-    transactionsByEmployeeUtils.invalidateData()
+
+    // Bug 7: this was setting all the previous values to null, commenting this fixed the mismatch issue.
+    // transactionsByEmployeeUtils.invalidateData()
 
     await employeeUtils.fetchAll()
-    await paginatedTransactionsUtils.fetchAll()
 
+    // Bug 5: the setIsLoading was getting called after the paginatedTransactionsUtils. I moved it up to fix the bug.
     setIsLoading(false)
-  }, [employeeUtils, paginatedTransactionsUtils, transactionsByEmployeeUtils])
+
+    await paginatedTransactionsUtils.fetchAll()
+  }, [employeeUtils, paginatedTransactionsUtils])
 
   const loadTransactionsByEmployee = useCallback(
     async (employeeId: string) => {
@@ -65,7 +69,12 @@ export function App() {
               return
             }
 
-            await loadTransactionsByEmployee(newValue.id)
+            // Bug 3: if id is empty then load all the transactions.
+            if (newValue.id === "") {
+              await loadAllTransactions()
+            } else {
+              await loadTransactionsByEmployee(newValue.id)
+            }
           }}
         />
 
