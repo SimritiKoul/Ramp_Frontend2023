@@ -10,6 +10,13 @@ export function usePaginatedTransactions(): PaginatedTransactionsResult {
   > | null>(null)
 
   const fetchAll = useCallback(async () => {
+    /* 
+      Bug 6: If 'nextPage' is null, then simply return. The 'loading' value is updated in 'usedWrappedRequest.ts' for the same.
+    */
+    if (paginatedTransactions && paginatedTransactions.nextPage === null) {
+      return
+    }
+
     const response = await fetchWithCache<PaginatedResponse<Transaction[]>, PaginatedRequestParams>(
       "paginatedTransactions",
       {
@@ -22,7 +29,10 @@ export function usePaginatedTransactions(): PaginatedTransactionsResult {
         return response
       }
 
-      return { data: response.data, nextPage: response.nextPage }
+      /* 
+        Bug 4: This previously sent only the new data, but now it concatenates the previous response with the current response to provide the final response.
+      */
+      return { data: [...(previousResponse.data || []), ...response.data], nextPage: response.nextPage }
     })
   }, [fetchWithCache, paginatedTransactions])
 
